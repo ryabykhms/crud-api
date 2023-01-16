@@ -1,36 +1,39 @@
-type HTTPMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
-
-type RequestParams<T> = {
-  url: string;
-  method: HTTPMethod | string;
-  body: T;
-};
-
-type Response = {
-  statusCode: number;
-  message: string;
-};
-
-type RouteHandler = (payload: any) => Response; // TODO: change payload type
+import { RequestParams, Response, Route, RouteHandler } from './types';
 
 class Router {
-  public handle<T>(params: RequestParams<T>): Response {
+  private routes = new Map<Route, RouteHandler>();
+
+  public handle<T>(params: RequestParams): Response {
     const { url, method, body } = params;
-    const handleRoute = this.getHandler(method, url);
+
+    const urlParams = url.match(/.*\/([-0-9a-zA-Z]+)/)?.[1];
+    const urlWithoutFirstSlash = url.substring(url.indexOf('/') + 1);
+
+    const handleRoute = this.getHandler(method, urlWithoutFirstSlash, urlParams);
 
     if (!handleRoute) {
       return {
         statusCode: 404,
-        message: 'Route not found', // TODO: change message
+        message: 'Route not found',
       };
     }
 
-    handleRoute({ url, method, body });
+    return handleRoute({ url: urlWithoutFirstSlash, method, body, params: urlParams });
   }
 
-  // TODO: implement
-  private getHandler(method: string, url: string): RouteHandler {
-    return;
+  public addRoute(route: Route, handler: RouteHandler) {
+    this.routes.set(route, handler);
+  }
+
+  private getHandler(method: string, url: string, urlParams: string): RouteHandler {
+    for (const [route, handler] of this.routes.entries()) {
+      if (
+        route.method === method &&
+        ((urlParams && route.url.match(/.*\/\$\{([0-9a-zA-Z]+)\}$/)?.[1]) || route.url === url)
+      ) {
+        return handler;
+      }
+    }
   }
 }
 

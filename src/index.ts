@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { router } from './router';
+import { initRoutes } from './router/routes';
 
 function start(): void {
   const httpServer = createServer(handleRequest);
@@ -11,7 +12,8 @@ function start(): void {
 async function handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const { method, url } = req;
   const body = await parseBody(req);
-  const { statusCode, message } = router.handle({ method, url, body });
+  initRoutes();
+  const { statusCode, message } = router.handle({ method, url, body: body && JSON.parse(body) }) || {};
 
   res.writeHead(statusCode, {
     'Content-Type': 'application/json',
